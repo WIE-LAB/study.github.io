@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>考研悖论引擎</title>
+    <style>
+        :root {
+            --primary: #7e57c2;
+            --secondary: #26a69a;
+            --accent: #ff7043;
+        }
+
+        body {
+            background: #1a1b26;
+            color: #a9b1d6;
+            font-family: 'Fira Code', monospace;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .hidden { display: none; }
+
+        .mission-board {
+            max-width: 800px;
+            margin: 2rem auto;
+            background: rgba(0,0,0,0.7);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .task {
+            background: rgba(255,255,255,0.05);
+            border-left: 3px solid var(--primary);
+            margin: 1rem 0;
+            padding: 1rem;
+            cursor: pointer;
+            display: grid;
+            grid-template-columns: 30px 1fr 100px;
+            align-items: center;
+            transition: transform 0.3s;
+        }
+
+        .task:hover {
+            transform: translateX(10px);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            width: 0;
+            transition: 1s;
+        }
+
+        .console {
+            background: rgba(0,0,0,0.7);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 2rem auto;
+            max-width: 800px;
+            border: 2px dashed var(--secondary);
+        }
+
+        .license-container {
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        #finalLicense {
+            white-space: pre-wrap;
+            background: rgba(0,0,0,0.5);
+            padding: 1rem;
+            border-radius: 5px;
+        }
+
+        .reset-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            float: right;
+        }
+    </style>
+</head>
+<body>
+    <!-- 任务系统 -->
+    <div id="taskSystem">
+        <div class="mission-board">
+            <h2>📡 反向自律任务终端</h2>
+            
+            <div class="task" onclick="updateProgress(0)">
+                <div>🅰️</div>
+                <div>
+                    <h3>语法暴力拆解</h3>
+                    <p>用编程术语重写考研英语长难句</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress0"></div>
+                    </div>
+                </div>
+                <div style="color: var(--secondary);">+15 能量豆</div>
+            </div>
+
+            <div class="task" onclick="updateProgress(1)">
+                <div>🔄</div>
+                <div>
+                    <h3>递归式休息</h3>
+                    <p>设置25分钟强制休息倒计时</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress1"></div>
+                    </div>
+                </div>
+                <div style="color: var(--secondary);">+1 摆烂信用点</div>
+            </div>
+
+            <div class="task" onclick="updateProgress(2)">
+                <div>🎨</div>
+                <div>
+                    <h3>错误创作</h3>
+                    <p>故意写错五道题目，用最荒谬的做法</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress2"></div>
+                    </div>
+                </div>
+                <div style="color: var(--secondary);">+20 叛逆值</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 摆烂控制台 -->
+    <div id="procrastiConsole" class="console hidden">
+        <button class="reset-btn" onclick="resetSystem()">重置系统</button>
+        <h2>🎮 摆烂控制台</h2>
+        <div class="license-container">
+            <h3>⚛️ 量子摆烂许可证</h3>
+            <pre id="finalLicense"></pre>
+            <button onclick="updateLicense()">刷新证书</button>
+        </div>
+    </div>
+
+    <script>
+        // 增强版状态管理
+        const state = {
+            tasks: [
+                { progress: 0, target: 3 },
+                { progress: 0, target: 1 },
+                { progress: 0, target: 5 }
+            ],
+            unlocked: false
+        };
+
+        // 初始化加载
+        function loadState() {
+            const saved = localStorage.getItem('procrastiState');
+            if(saved) {
+                const savedState = JSON.parse(saved);
+                state.tasks = savedState.tasks.map((t, i) => ({
+                    progress: t.progress,
+                    target: state.tasks[i].target
+                }));
+                state.unlocked = savedState.unlocked;
+                
+                state.tasks.forEach((task, index) => {
+                    const progress = (task.progress / task.target) * 100;
+                    document.getElementById(`progress${index}`).style.width = `${progress}%`;
+                });
+                
+                checkUnlock();
+            }
+        }
+
+        // 保存状态
+        function saveState() {
+            const saveData = {
+                tasks: state.tasks.map(t => ({ progress: t.progress })),
+                unlocked: state.unlocked
+            };
+            localStorage.setItem('procrastiState', JSON.stringify(saveData));
+        }
+
+        // 更新进度
+        function updateProgress(index) {
+            const task = state.tasks[index];
+            if(task.progress < task.target) {
+                task.progress++;
+                const progress = (task.progress / task.target) * 100;
+                document.getElementById(`progress${index}`).style.width = `${progress}%`;
+                checkUnlock();
+                saveState();
+            }
+        }
+
+        // 检查解锁条件
+        function checkUnlock() {
+            state.unlocked = state.tasks.every(t => t.progress >= t.target);
+            if(state.unlocked) {
+                document.getElementById('taskSystem').classList.add('hidden');
+                document.getElementById('procrastiConsole').classList.remove('hidden');
+                updateLicense();
+            } else {
+                document.getElementById('taskSystem').classList.remove('hidden');
+                document.getElementById('procrastiConsole').classList.add('hidden');
+            }
+        }
+
+        // 更新许可证
+        function updateLicense() {
+            const licenseText = `
+                用户ID: xr
+                成就解锁:
+                ✓ 语法重构 ${state.tasks[0].progress}次
+                ✓ 递归休息 ${state.tasks[1].progress}次
+                ✓ 错误创作 ${state.tasks[2].progress}次
+                
+                特权清单:
+                • 牛奶无限补给协议 v2.1
+                • 深夜豁免权有效期: 无限期
+                • 量子摆烂能量: ${state.tasks[2].progress * 20}%
+            `;
+            document.getElementById('finalLicense').innerText = licenseText;
+        }
+
+        // 重置系统
+        function resetSystem() {
+            localStorage.removeItem('procrastiState');
+            location.reload();
+        }
+
+        // 初始化
+        loadState();
+    </script>
+</body>
+</html>
